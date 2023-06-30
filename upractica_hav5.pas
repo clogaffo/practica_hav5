@@ -21,20 +21,34 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
-    Button1: TButton;
-    Button2: TButton;
+    btRespuesta: TButton;
+    btCorrecto: TButton;
+    btIncorrecto: TButton;
+    btTerminar: TButton;
+    btComenzar: TButton;
     Image1: TImage;
-    Label1: TLabel;
+    lbInfo: TLabel;
+    lbRespuesta: TLabel;
     Panel1: TPanel;
     Panel2: TPanel;
-    procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
+    procedure btComenzarClick(Sender: TObject);
+    procedure btIncorrectoClick(Sender: TObject);
+    procedure btRespuestaClick(Sender: TObject);
+    procedure btCorrectoClick(Sender: TObject);
+    procedure btTerminarClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure muestraimagen(i:integer);
+    procedure siguienteimagen;
+    procedure ActualizaInfo;
   private
     listaImagenes: TStringList;
+    respuestasCorrectas: array of integer;
+    respuestasIncorrectas: array of integer;
+    respuestasRepaso: array of integer;
     imagenact:string;
+    indiceact:integer;
+    indicerepaso:integer;
     function RandomImage: integer;
   public
 
@@ -53,33 +67,44 @@ implementation
 
 procedure TForm1.FormShow(Sender: TObject);
 begin
-  Button1.Enabled := True;
-  Button2.Enabled := False;
+  indicerepaso := -1;
+  btRespuesta.Enabled := True;
+  btCorrecto.Enabled := False;
+  btIncorrecto.Enabled := False;
+  lbRespuesta.Caption := '';
+  ActualizaInfo;
   muestraimagen(RandomImage);
 end;
 
 procedure TForm1.muestraimagen(i: integer);
 var
   png : TPNGImage;
+  pngw,pngh,imgw,imgh: integer;
   dest: TRect;
 begin
   png := TPNGImage.Create;
   try
+    indiceact := i;
     imagenact := listaImagenes[i];
     png.LoadFromFile(imagenact);
-    if png.Height div png.Width>Image1.Height div Image1.Width then
+    pngw := png.Width;
+    pngh := png.Height;
+    imgw := Image1.Width;
+    imgh := Image1.Height;
+
+    if pngh div pngw<imgh div imgw then
     begin
       dest.Top := 0;
-      dest.Bottom := Image1.Height;
-      dest.Left := (Image1.Width - (png.Width * Image1.Height div Image1.Width)) div 2;
-      dest.Right := (png.Width * Image1.Height div Image1.Width) + dest.Left;
+      dest.Bottom := imgh;
+      dest.Left := (imgw - (pngw * imgh div imgw)) div 2;
+      dest.Right := (pngw* imgh div imgw) + dest.Left;
     end
     else
     begin
       dest.Left := 0;
-      dest.Right := Image1.Width;
-      dest.Top := (Image1.Height - (png.Height * Image1.Width div Image1.Height)) div 2;
-      dest.Bottom := (png.Height * Image1.Width div Image1.Height) + dest.Top;
+      dest.Right := imgw;
+      dest.Top := (imgh - (pngh * imgw div imgh)) div 2;
+      dest.Bottom := (pngh * imgw div imgh) + dest.Top;
     end;
 
     Image1.Canvas.Clear;
@@ -87,6 +112,71 @@ begin
   finally
     FreeAndNil(png);
   end;
+end;
+
+procedure TForm1.siguienteimagen;
+var
+  cand: integer;
+  candok: boolean;
+  i: integer;
+begin
+  ActualizaInfo;
+  btRespuesta.Enabled := True;
+  btCorrecto.Enabled := False;
+  btIncorrecto.Enabled := False;
+  lbRespuesta.Caption := '';
+  if indicerepaso<0 then
+  begin
+    candok := true;
+    repeat
+     cand := RandomImage;
+     for i:=0 to high(respuestasCorrectas) do
+      if respuestasCorrectas[i]=cand then
+      begin
+        candok := False;
+        break;
+      end;
+     if candok then
+     begin
+       for i:=0 to high(respuestasIncorrectas) do
+        if respuestasIncorrectas[i]=cand then
+        begin
+          candok := False;
+          break;
+        end;
+     end;
+    until candok;
+  end
+  else
+  begin
+    if indicerepaso>high(respuestasRepaso) then
+    begin
+      ShowMessage('REPASO TERMINADO');
+      indicerepaso := -1;
+      Exit;
+    end;
+    cand := respuestasRepaso[indicerepaso];
+    inc(indicerepaso);
+  end;
+  muestraimagen(cand);
+end;
+
+procedure TForm1.ActualizaInfo;
+var
+ s: string;
+begin
+  if indicerepaso<0 then
+  begin
+    s := 'General  ';
+    s := s+'Faltantes: '+inttostr(listaimagenes.Count-length(respuestasCorrectas)-length(respuestasIncorrectas));
+  end
+  else
+  begin
+    s := 'Repaso  ';
+    s := s+'Faltantes: '+inttostr(length(respuestasRepaso)-length(respuestasCorrectas)-length(respuestasIncorrectas));
+  end;
+  s := s+' Correctas: '+inttostr(length(respuestasCorrectas))+' Incorrectas: '+inttostr(length(respuestasIncorrectas));
+  lbInfo.Caption:=s;
 end;
 
 function TForm1.RandomImage: integer;
@@ -121,19 +211,58 @@ begin
   Randomize;
 end;
 
-procedure TForm1.Button2Click(Sender: TObject);
+procedure TForm1.btCorrectoClick(Sender: TObject);
 begin
-  Button1.Enabled := True;
-  Button2.Enabled := False;
-  Label1.Caption := '';
-  muestraimagen(RandomImage);
+  SetLength(respuestasCorrectas,length(respuestasCorrectas)+1);
+  respuestasCorrectas[high(respuestasCorrectas)] := indiceact;
+  siguienteimagen;
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TForm1.btTerminarClick(Sender: TObject);
+var
+  i:integer;
 begin
-  Button1.Enabled := False;
-  Button2.Enabled := True;
-  Label1.Caption := AnsiReplaceStr(AnsiReplaceStr(extractFileDir(imagenact),PathDelim,' - '),'imagenes -','');
+  if length(respuestasIncorrectas)>0 then
+  begin
+    if MessageDlg('Desea realizar un repaso de las que respondio incorrectamente?',mtConfirmation,[mbYes, mbNo],0)=mrYes then
+    begin
+      setlength(respuestasRepaso,length(respuestasIncorrectas));
+      for i:=0 to high(respuestasIncorrectas) do
+         respuestasRepaso[i]:=respuestasIncorrectas[i];
+      setlength(respuestasCorrectas,0);
+      setlength(respuestasIncorrectas,0);
+      indicerepaso := 0;
+      siguienteimagen;
+      exit;
+    end
+  end;
+  setlength(respuestasCorrectas,0);
+  setlength(respuestasIncorrectas,0);
+  setlength(respuestasRepaso,0);
+  btTerminar.Visible:=False;
+  btComenzar.Visible:=True;
+end;
+
+procedure TForm1.btRespuestaClick(Sender: TObject);
+begin
+  btRespuesta.Enabled := False;
+  btCorrecto.Enabled := True;
+  btIncorrecto.Enabled := True;
+  lbRespuesta.Caption := AnsiReplaceStr(AnsiReplaceStr(copy(imagenact,1,length(imagenact)-4),PathDelim,' - '),'imagenes -','');
+end;
+
+procedure TForm1.btIncorrectoClick(Sender: TObject);
+begin
+  SetLength(respuestasIncorrectas,length(respuestasIncorrectas)+1);
+  respuestasIncorrectas[high(respuestasIncorrectas)] := indiceact;
+  siguienteimagen;
+end;
+
+procedure TForm1.btComenzarClick(Sender: TObject);
+begin
+  btTerminar.Visible:=True;
+  btComenzar.Visible:=False;
+  siguienteimagen;
 end;
 
 end.
