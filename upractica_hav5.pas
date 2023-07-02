@@ -68,12 +68,12 @@ implementation
 procedure TForm1.FormShow(Sender: TObject);
 begin
   indicerepaso := -1;
-  btRespuesta.Enabled := True;
   btCorrecto.Enabled := False;
   btIncorrecto.Enabled := False;
   lbRespuesta.Caption := '';
   muestraimagen(RandomImage);
   ActualizaInfo;
+  btRespuesta.Enabled := True;
 end;
 
 procedure TForm1.muestraimagen(i: integer);
@@ -120,14 +120,13 @@ var
   candok: boolean;
   i: integer;
 begin
-  btRespuesta.Enabled := True;
   btCorrecto.Enabled := False;
   btIncorrecto.Enabled := False;
   lbRespuesta.Caption := '';
   if indicerepaso<0 then
   begin
-    candok := true;
     repeat
+     candok := true;
      cand := RandomImage;
      for i:=0 to high(respuestasCorrectas) do
       if respuestasCorrectas[i]=cand then
@@ -159,6 +158,7 @@ begin
   end;
   muestraimagen(cand);
   ActualizaInfo;
+  btRespuesta.Enabled := True;
 end;
 
 procedure TForm1.ActualizaInfo;
@@ -247,9 +247,9 @@ end;
 procedure TForm1.btRespuestaClick(Sender: TObject);
 begin
   btRespuesta.Enabled := False;
+  lbRespuesta.Caption := AnsiReplaceStr(AnsiReplaceStr(copy(imagenact,1,length(imagenact)-4),PathDelim,' - '),'imagenes -','');
   btCorrecto.Enabled := True;
   btIncorrecto.Enabled := True;
-  lbRespuesta.Caption := AnsiReplaceStr(AnsiReplaceStr(copy(imagenact,1,length(imagenact)-4),PathDelim,' - '),'imagenes -','');
 end;
 
 procedure TForm1.btIncorrectoClick(Sender: TObject);
