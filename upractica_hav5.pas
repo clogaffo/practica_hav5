@@ -72,8 +72,8 @@ begin
   btCorrecto.Enabled := False;
   btIncorrecto.Enabled := False;
   lbRespuesta.Caption := '';
-  ActualizaInfo;
   muestraimagen(RandomImage);
+  ActualizaInfo;
 end;
 
 procedure TForm1.muestraimagen(i: integer);
@@ -92,19 +92,19 @@ begin
     imgw := Image1.Width;
     imgh := Image1.Height;
 
-    if pngh div pngw<imgh div imgw then
+    if pngh/pngw>imgh/imgw then
     begin
       dest.Top := 0;
       dest.Bottom := imgh;
-      dest.Left := (imgw - (pngw * imgh div imgw)) div 2;
-      dest.Right := (pngw* imgh div imgw) + dest.Left;
+      dest.Left := (imgw - (pngw * imgh div pngh)) div 2;
+      dest.Right := (pngw * imgh div pngh) + dest.Left;
     end
     else
     begin
       dest.Left := 0;
       dest.Right := imgw;
-      dest.Top := (imgh - (pngh * imgw div imgh)) div 2;
-      dest.Bottom := (pngh * imgw div imgh) + dest.Top;
+      dest.Top := (imgh - (pngh * imgw div pngw)) div 2;
+      dest.Bottom := (pngh * imgw div pngw) + dest.Top;
     end;
 
     Image1.Canvas.Clear;
@@ -120,7 +120,6 @@ var
   candok: boolean;
   i: integer;
 begin
-  ActualizaInfo;
   btRespuesta.Enabled := True;
   btCorrecto.Enabled := False;
   btIncorrecto.Enabled := False;
@@ -159,20 +158,22 @@ begin
     inc(indicerepaso);
   end;
   muestraimagen(cand);
+  ActualizaInfo;
 end;
 
 procedure TForm1.ActualizaInfo;
 var
  s: string;
 begin
+  s:=inttostr(indiceact)+' ';
   if indicerepaso<0 then
   begin
-    s := 'General  ';
+    s := s+ 'General  ';
     s := s+'Faltantes: '+inttostr(listaimagenes.Count-length(respuestasCorrectas)-length(respuestasIncorrectas));
   end
   else
   begin
-    s := 'Repaso  ';
+    s := s+ 'Repaso  ';
     s := s+'Faltantes: '+inttostr(length(respuestasRepaso)-length(respuestasCorrectas)-length(respuestasIncorrectas));
   end;
   s := s+' Correctas: '+inttostr(length(respuestasCorrectas))+' Incorrectas: '+inttostr(length(respuestasIncorrectas));
