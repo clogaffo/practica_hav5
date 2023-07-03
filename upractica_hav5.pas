@@ -41,8 +41,10 @@ type
     procedure muestraimagen(i:integer);
     procedure siguienteimagen;
     procedure ActualizaInfo;
+    procedure generaPendientes;
   private
     listaImagenes: TStringList;
+    imagenesPendientes: array of integer;
     respuestasCorrectas: array of integer;
     respuestasIncorrectas: array of integer;
     respuestasRepaso: array of integer;
@@ -125,25 +127,14 @@ begin
   lbRespuesta.Caption := '';
   if indicerepaso<0 then
   begin
-    repeat
-     candok := true;
-     cand := RandomImage;
-     for i:=0 to high(respuestasCorrectas) do
-      if respuestasCorrectas[i]=cand then
-      begin
-        candok := False;
-        break;
-      end;
-     if candok then
-     begin
-       for i:=0 to high(respuestasIncorrectas) do
-        if respuestasIncorrectas[i]=cand then
-        begin
-          candok := False;
-          break;
-        end;
-     end;
-    until candok;
+    if length(imagenesPendientes)<1 then
+    begin
+      ShowMessage('ESTUDIO TERMINADO');
+      generaPendientes;
+      Exit;
+    end;
+
+   cand := RandomImage;
   end
   else
   begin
@@ -169,7 +160,7 @@ begin
   if indicerepaso<0 then
   begin
     s := s+ 'General  ';
-    s := s+'Faltantes: '+inttostr(listaimagenes.Count-length(respuestasCorrectas)-length(respuestasIncorrectas));
+    s := s+'Faltantes: '+inttostr(length(imagenesPendientes));
   end
   else
   begin
@@ -180,9 +171,24 @@ begin
   lbInfo.Caption:=s;
 end;
 
-function TForm1.RandomImage: integer;
+procedure TForm1.generaPendientes;
+var
+  i:integer;
 begin
-  Result := Round(Random()*listaimagenes.Count-1);
+  setlength(imagenesPendientes,listaImagenes.Count);
+  for i:=0 to high(imagenesPendientes) do
+    imagenesPendientes[i] := i;
+end;
+
+function TForm1.RandomImage: integer;
+var
+  i,idxrst: integer;
+begin
+  idxrst := Round(Random()*high(imagenesPendientes));
+  Result := imagenesPendientes[idxrst];
+  for i:=idxrst to high(imagenesPendientes)-1 do
+    imagenesPendientes[idxrst] := imagenesPendientes[idxrst+1];
+  setlength(imagenesPendientes,length(imagenesPendientes)-1);
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -209,7 +215,10 @@ begin
   listadir('imagenes');
   if listaImagenes.Count=0 then
     ShowMessage('NO SE ENCONTRARON IMAGENES');
+  while listaImagenes.Count>10 do
+    listaImagenes.Delete(10);
   Randomize;
+  generaPendientes;
 end;
 
 procedure TForm1.btCorrectoClick(Sender: TObject);
