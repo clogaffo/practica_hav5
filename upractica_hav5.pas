@@ -37,6 +37,7 @@ type
     procedure btCorrectoClick(Sender: TObject);
     procedure btTerminarClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure muestraimagen(i:integer);
     procedure siguienteimagen;
@@ -156,7 +157,8 @@ procedure TForm1.ActualizaInfo;
 var
  s: string;
 begin
-  s:=inttostr(indiceact)+' ';
+  // s:=inttostr(indiceact)+' ';
+  s := '';
   if indicerepaso<0 then
   begin
     s := s+ 'General  ';
@@ -215,10 +217,19 @@ begin
   listadir('imagenes');
   if listaImagenes.Count=0 then
     ShowMessage('NO SE ENCONTRARON IMAGENES');
-  while listaImagenes.Count>10 do
-    listaImagenes.Delete(10);
+  // while listaImagenes.Count>10 do
+  //  listaImagenes.Delete(10);
   Randomize;
   generaPendientes;
+end;
+
+procedure TForm1.FormDestroy(Sender: TObject);
+begin
+  setlength(imagenesPendientes,0);
+  setlength(respuestasCorrectas,0);
+  setlength(respuestasIncorrectas,0);
+  setlength(respuestasRepaso,0);
+  listaImagenes.Free;
 end;
 
 procedure TForm1.btCorrectoClick(Sender: TObject);
@@ -252,6 +263,7 @@ begin
   btTerminar.Visible:=False;
   btComenzar.Visible:=True;
 end;
+
 
 procedure TForm1.btRespuestaClick(Sender: TObject);
 begin
