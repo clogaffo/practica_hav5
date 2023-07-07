@@ -10,7 +10,7 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, imagesforlazarus, upractica_hav5
+  Forms, imagesforlazarus, upractica_hav5, umanejador_indices
   { you can add units after this };
 
 {$R *.res}

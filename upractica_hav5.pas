@@ -14,7 +14,8 @@ uses
   ExtCtrls,
   StdCtrls,
   StrUtils,
-  lazpng;
+  lazpng,
+  umanejador_indices;
 
 type
 
@@ -42,17 +43,15 @@ type
     procedure muestraimagen(i:integer);
     procedure siguienteimagen;
     procedure ActualizaInfo;
-    procedure generaPendientes;
   private
     listaImagenes: TStringList;
-    imagenesPendientes: array of integer;
-    respuestasCorrectas: array of integer;
-    respuestasIncorrectas: array of integer;
-    respuestasRepaso: array of integer;
+    mi: TManejador_Indices;
+    //imagenesPendientes: array of integer;
+    //respuestasCorrectas: array of integer;
+    //respuestasIncorrectas: array of integer;
+    //respuestasRepaso: array of integer;
     imagenact:string;
     indiceact:integer;
-    indicerepaso:integer;
-    function RandomImage: integer;
   public
 
   end;
@@ -70,11 +69,10 @@ implementation
 
 procedure TForm1.FormShow(Sender: TObject);
 begin
-  indicerepaso := -1;
   btCorrecto.Enabled := False;
   btIncorrecto.Enabled := False;
   lbRespuesta.Caption := '';
-  muestraimagen(RandomImage);
+  muestraimagen(mi.siguienteIndice);
   ActualizaInfo;
   btRespuesta.Enabled := True;
 end;
@@ -126,27 +124,25 @@ begin
   btCorrecto.Enabled := False;
   btIncorrecto.Enabled := False;
   lbRespuesta.Caption := '';
-  if indicerepaso<0 then
+  if not mi.En_repaso then
   begin
-    if length(imagenesPendientes)<1 then
+    if mi.cantidadPendientes<1 then
     begin
       ShowMessage('ESTUDIO TERMINADO');
-      generaPendientes;
+      mi.generaPendientes;
       Exit;
     end;
 
-   cand := RandomImage;
+   cand := mi.siguienteIndice;
   end
   else
   begin
-    if indicerepaso>high(respuestasRepaso) then
+    if mi.cantidadPendientes<1 then
     begin
       ShowMessage('REPASO TERMINADO');
-      indicerepaso := -1;
       Exit;
     end;
-    cand := respuestasRepaso[indicerepaso];
-    inc(indicerepaso);
+    cand := mi.siguienteIndice;
   end;
   muestraimagen(cand);
   ActualizaInfo;
@@ -157,40 +153,19 @@ procedure TForm1.ActualizaInfo;
 var
  s: string;
 begin
-  // s:=inttostr(indiceact)+' ';
-  s := '';
-  if indicerepaso<0 then
+  s:=inttostr(indiceact)+' ';
+  //s := '';
+  if not mi.En_repaso then
   begin
     s := s+ 'General  ';
-    s := s+'Faltantes: '+inttostr(length(imagenesPendientes));
   end
   else
   begin
     s := s+ 'Repaso  ';
-    s := s+'Faltantes: '+inttostr(length(respuestasRepaso)-length(respuestasCorrectas)-length(respuestasIncorrectas));
   end;
-  s := s+' Correctas: '+inttostr(length(respuestasCorrectas))+' Incorrectas: '+inttostr(length(respuestasIncorrectas));
+  s := s+'Faltantes: '+inttostr(mi.cantidadPendientes);
+  s := s+' Correctas: '+inttostr(mi.cantidadCorrectos)+' Incorrectas: '+inttostr(mi.cantidadIncorrectos);
   lbInfo.Caption:=s;
-end;
-
-procedure TForm1.generaPendientes;
-var
-  i:integer;
-begin
-  setlength(imagenesPendientes,listaImagenes.Count);
-  for i:=0 to high(imagenesPendientes) do
-    imagenesPendientes[i] := i;
-end;
-
-function TForm1.RandomImage: integer;
-var
-  i,idxrst: integer;
-begin
-  idxrst := Round(Random()*high(imagenesPendientes));
-  Result := imagenesPendientes[idxrst];
-  for i:=idxrst to high(imagenesPendientes)-1 do
-    imagenesPendientes[idxrst] := imagenesPendientes[idxrst+1];
-  setlength(imagenesPendientes,length(imagenesPendientes)-1);
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -219,23 +194,20 @@ begin
     ShowMessage('NO SE ENCONTRARON IMAGENES');
   // while listaImagenes.Count>10 do
   //  listaImagenes.Delete(10);
+  mi := TManejador_Indices.Create(listaImagenes.Count);
   Randomize;
-  generaPendientes;
+  mi.generaPendientes;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
-  setlength(imagenesPendientes,0);
-  setlength(respuestasCorrectas,0);
-  setlength(respuestasIncorrectas,0);
-  setlength(respuestasRepaso,0);
+  mi.Free;
   listaImagenes.Free;
 end;
 
 procedure TForm1.btCorrectoClick(Sender: TObject);
 begin
-  SetLength(respuestasCorrectas,length(respuestasCorrectas)+1);
-  respuestasCorrectas[high(respuestasCorrectas)] := indiceact;
+  mi.agregarCorrecto(indiceact);
   siguienteimagen;
 end;
 
@@ -243,23 +215,18 @@ procedure TForm1.btTerminarClick(Sender: TObject);
 var
   i:integer;
 begin
-  if length(respuestasIncorrectas)>0 then
+  if mi.cantidadIncorrectos>0 then
   begin
     if MessageDlg('Desea realizar un repaso de las que respondio incorrectamente?',mtConfirmation,[mbYes, mbNo],0)=mrYes then
     begin
-      setlength(respuestasRepaso,length(respuestasIncorrectas));
-      for i:=0 to high(respuestasIncorrectas) do
-         respuestasRepaso[i]:=respuestasIncorrectas[i];
-      setlength(respuestasCorrectas,0);
-      setlength(respuestasIncorrectas,0);
-      indicerepaso := 0;
+      mi.En_repaso:=True;
       siguienteimagen;
       exit;
     end
-  end;
-  setlength(respuestasCorrectas,0);
-  setlength(respuestasIncorrectas,0);
-  setlength(respuestasRepaso,0);
+  end
+  else
+    mi.En_repaso:=False;
+  mi.blanquearRespuestas;
   btTerminar.Visible:=False;
   btComenzar.Visible:=True;
 end;
@@ -275,8 +242,8 @@ end;
 
 procedure TForm1.btIncorrectoClick(Sender: TObject);
 begin
-  SetLength(respuestasIncorrectas,length(respuestasIncorrectas)+1);
-  respuestasIncorrectas[high(respuestasIncorrectas)] := indiceact;
+
+  mi.agregarIncorrecto(indiceact);
   siguienteimagen;
 end;
 
